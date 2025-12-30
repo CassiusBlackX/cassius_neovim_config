@@ -1,64 +1,155 @@
 -- ===================================================================== --
---                              basic configuration 
+--                              basic configuration
 -- ========================================================================== --
-vim.g.mapleader = ' '          
+vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
-vim.opt.number = true           
-vim.opt.relativenumber = true   
-vim.opt.mouse = 'a'           
-vim.opt.tabstop = 4            
-vim.opt.shiftwidth = 4          
-vim.opt.expandtab = true      
-vim.opt.cursorline = false     
-vim.opt.termguicolors = true    
-vim.opt.clipboard = "unnamedplus" 
+vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.mouse = 'a'
+vim.opt.cursorline = false
+vim.opt.termguicolors = true
+vim.opt.timeoutlen = 300
+vim.opt.updatetime = 300
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "v:lua.vim.lsp.foldexpr()"
+vim.opt.foldlevel = 99
+vim.opt.foldcolumn = "0"
 
--- ========================================================================== --
---                                clip board                           
--- ========================================================================== --
-if vim.fn.exists('##TextYankPost') == 1 then
-    vim.api.nvim_create_autocmd('TextYankPost', {
-        callback = function()
-            if vim.v.event.operator == 'y' then
-                require('vim.ui.clipboard.osc52').copy('+')(vim.v.event.regcontents)
-            end
-        end,
-    })
+-- load plugins manually
+local config_path = vim.fn.stdpath('config')
+local plugins = vim.fn.expand(config_path .. '/plugins/*', false, true)
+if type(plugins) == "table" then
+    for _, plugin in ipairs(plugins) do
+        vim.opt.rtp:prepend(plugin)
+    end
 end
 
 -- ========================================================================== --
---                                Tokyonight                        --
+--                                shortcut keybindings
 -- ========================================================================== --
-vim.cmd([[colorscheme tokyonight-storm]]) 
+vim.keymap.set({ 'n', 'x', 'o' }, 'gl', '$', { desc = "go to the end of the line" })
+vim.keymap.set({ 'n', 'x', 'o' }, 'gh', '0', { desc = "go to the head of the line" })
+vim.keymap.set({ 'n', 'x', 'o' }, 'ge', 'G', { desc = "go to the end of the file" })
+vim.keymap.set('n', 'gn', '<cmd>bnext<CR>', { desc = "go to next buffer" })
+vim.keymap.set('n', 'gp', '<cmd>bprev<CR>', { desc = "go to buffer" })
+vim.keymap.set('n', 'U', '<C-r>', { desc = "Redo" })
+vim.keymap.set('n', '<Leader>w', '<C-w>', { desc = "+window" })
+vim.keymap.set('n', '<Leader>v', '<C-v>', { desc = "Enter visual block mode" })
+vim.keymap.set({ 'n', 'x' }, '<Leader>y', '"+y', { desc = "copy to system clipboard" })
+vim.keymap.set({ 'n', 'x', 'o' }, 'mm', '%', { desc = "jump to match" })
+vim.keymap.set('n', '<Leader>a', function()
+    local cursor_pos = vim.api.nvim_win_get_cursor(0)
+    vim.cmd(':%y+')
+    vim.api.nvim_win_set_cursor(0, cursor_pos)
+    vim.notify("Entire file copied to system clipboard", vim.log.levels.INFO)
+end, { desc = "copy whole file to system clipboard" })
+if vim.env.SSH_TTY then
+    vim.g.clipboard = {
+        name = 'OSC 52',
+        copy = {
+            ['+'] = require('vim.ui.clipboard.osc52').copy('+'),
+            ['*'] = require('vim.ui.clipboard.osc52').copy('*'),
+        },
+        paste = {
+            ['+'] = require('vim.ui.clipboard.osc52').paste('+'),
+            ['*'] = require('vim.ui.clipboard.osc52').paste('*'),
+        }
+    }
+end
 
 -- ========================================================================== --
---                                mini.nvim                        --
+--                                theme Tokyonight
 -- ========================================================================== --
-require('mini.basics').setup()   
-require('mini.statusline').setup() 
+vim.cmd([[colorscheme tokyonight-storm]])
+
+-- ========================================================================== --
+--                                mini.nvim
+-- ========================================================================== --
+require('mini.basics').setup()
+require('mini.statusline').setup()
 require('mini.icons').setup()
 require('mini.snippets').setup()
-require('mini.starter').setup()   
-require('mini.files').setup()    
+require('mini.starter').setup()
+require('mini.files').setup()
 require('mini.cmdline').setup()
 require('mini.pairs').setup()
 require('mini.surround').setup()
 require('mini.clue').setup()
 require('mini.pick').setup()
+require('mini.comment').setup()
+require('mini.tabline').setup({
+    show_icons = true,
+    format = function(buf_id, label)
+        return MiniTabline.default_format(buf_id, label)
+    end,
+})
+require('mini.bufremove').setup()
+require('mini.jump2d').setup({
+    allowed_windows = { current = true, not_current = false },
+    mappings = { start_jumping = '', },
+    view = { n_steps_ahead = 1, },
+})
 require('mini.completion').setup({
     fallback_action = '',
     lsp_completion = {
         snippet_insert = require('mini.completion').default_snippet_insert,
     },
-    delay = { completion = 50, info = 100, signature = 50},
+    delay = { completion = 50, info = 100, signature = 50 },
 })
 
 -- mini.files key bindings
 vim.keymap.set('n', '<Leader>e', function() require('mini.files').open() end)
 -- mini.pick key bindings
-vim.keymap.set('n', '<Leader>ff', function() vim.cmd('Pick files') end)
-vim.keymap.set('n', '<Leader>fb', function() vim.cmd('Pick buffers') end)
-vim.keymap.set('n', '<Leader>fg', function() vim.cmd('Pick grep') end)
+local get_project_root = function()
+    local root_markers = {
+        '.git',
+        'CMakeLists.txt',
+        'Cargo.toml',
+        'package.json',
+        'pyproject.toml'
+    }
+    local current_file_dir = vim.fn.expand('%:p:h')
+    if current_file_dir == "" then current_file_dir = vim.fn.getcwd() end
+    local paths = vim.fs.find(root_markers, {
+        upward = true,
+        limit = math.huge,
+        path = current_file_dir,
+    })
+    if #paths > 0 then
+        return vim.fs.dirname(paths[#paths])
+    end
+    return vim.fn.getcwd()
+end
+vim.keymap.set('n', '<Leader>ff', function()
+    require('mini.pick').builtin.files(nil, { source = { cwd = vim.fn.getcwd() } })
+end, { desc = "search files (cwd)" })
+vim.keymap.set('n', '<Leader>fF', function()
+    local root = get_project_root()
+    require('mini.pick').builtin.files(nil, { source = { cwd = root } })
+end, { desc = "search files (project root)" })
+vim.keymap.set('n', '<Leader>fb', function()
+    vim.cmd('Pick buffers')
+end, { desc = "search buffers" })
+vim.keymap.set('n', '<Leader>fg', function()
+    vim.cmd('Pick grep')
+end, { desc = "search globally" })
+-- mini.bufremove
+vim.keymap.set('n', '<Leader>bc', function()
+    require('mini.bufremove').delete(0, false)
+end, { desc = "Delete buffer" })
+-- mini.comment
+vim.keymap.set('n', '<C-/>', 'gcc', { remap = true, desc = 'Toggle comment line' })
+vim.keymap.set('n', '<C-_>', 'gcc', { remap = true, desc = 'Toggle comment line' })
+vim.keymap.set('x', '<C-c>', 'gc', { remap = true, desc = 'Toggle comment selection' })
+-- mini.jump2d
+local jump_to_words = function()
+    require('mini.jump2d').start({
+        spotter = require('mini.jump2d').gen_spotter.pattern('%w+'),
+    })
+end
+vim.keymap.set('n', 'gw', jump_to_words, { desc = 'jump to word starts' })
+vim.keymap.set('x', 'gw', jump_to_words, { desc = 'jump in visual mode' })
+vim.keymap.set('o', 'gw', jump_to_words, { desc = 'jump in operator-pending mode' })
 -- mini.completion
 vim.keymap.set('i', '<Tab>', function()
     if vim.fn.pumvisible() == 1 then
@@ -83,10 +174,67 @@ vim.keymap.set('i', '<CR>', function()
     end
     return '<CR>'
 end, { expr = true })
+-- mini.clue
+local miniclue = require('mini.clue')
+miniclue.setup({
+    triggers = {
+        -- leader trigger
+        { mode = 'n', keys = '<Leader>' },
+        { mode = 'x', keys = '<Leader>' },
+        -- internal
+        { mode = 'n', keys = 'g' },
+        { mode = 'x', keys = 'g' },
+        { mode = 'n', keys = '[' },
+        { mode = 'n', keys = ']' },
+        { mode = 'x', keys = '[' },
+        { mode = 'x', keys = ']' },
+        { mode = 'n', keys = 'c' },
+        { mode = 'n', keys = 'd' },
+        { mode = 'n', keys = 'y' },
+        -- window
+        { mode = 'n', keys = '<C-w>' },
+        { mode = 'n', keys = '<Leader>w' },
+        -- motion
+        { mode = 'n', keys = 'z' },
+        { mode = 'x', keys = 'z' },
+        -- register
+        { mode = 'n', keys = '"' },
+        { mode = 'x', keys = '"' },
+        -- surround
+        { mode = 'n', keys = 's' },
+        -- mark
+        { mode = 'n', keys = "'" },
+        { mode = 'n', keys = "`" },
+        { mode = 'x', keys = "'" },
+        { mode = 'x', keys = "`" },
+        -- match
+        { mode = 'n', keys = "mm" },
+    },
+    clues = {
+        miniclue.gen_clues.builtin_completion(),
+        miniclue.gen_clues.g(),
+        miniclue.gen_clues.marks(),
+        miniclue.gen_clues.registers(),
+        miniclue.gen_clues.windows(),
+        miniclue.gen_clues.z(),
+        { mode = 'n', keys = '<Leader>y',  desc = 'copy to system clipboard' },
+        { mode = 'n', keys = '<Leader>cf', desc = 'format current code buffer' },
+        { mode = 'n', keys = '<Leader>ff', desc = 'search files (cwd)' },
+        { mode = 'n', keys = '<Leader>fF', desc = 'search files (project root)' },
+        { mode = 'n', keys = '<Leader>a',  desc = 'copy whole file' },
+        { mode = 'n', keys = '<Leader>tt', desc = 'open terminal' },
+        { mode = 'n', keys = 'mm',         desc = 'jump to match' },
+    },
+    window = {
+        delay = 100,
+        config = { border = 'rounded' },
+    },
+})
 
 -- ========================================================================== --
--- cursor memory
+-- special autocmd
 -- ========================================================================== --
+-- memorize cursor
 vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
     callback = function()
         local mark = vim.api.nvim_buf_get_mark(0, '"')
@@ -99,28 +247,150 @@ vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
         end
     end,
 })
+-- bufline auto show/hide
+vim.api.nvim_create_autocmd({ "BufEnter", "BufAdd", "BufDelete" }, {
+    callback = function()
+        local n_buffers = #vim.fn.getbufinfo({ buflisted = 1 })
+        if n_buffers > 1 then
+            vim.opt.showtabline = 2
+        else
+            vim.opt.showtabline = 0
+        end
+    end,
+})
+-- autosave
+vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave" }, {
+    callback = function()
+        if vim.bo.modified and vim.fn.expand('%') ~= "" and vim.bo.buftype == "" then
+            vim.cmd('update')
+        end
+    end,
+})
+-- edit init.lua
+vim.api.nvim_create_user_command('Conf', 'cd ' .. vim.fn.stdpath('config') .. ' | edit init.lua', {})
+
+-- ========================================================================== --
+--                               integrated terminal
+-- ========================================================================== --
+vim.keymap.set('n', '<Leader>tt', '<cmd>belowright split | terminal<CR>i', {
+    desc = "open integrated terminal"
+})
+
+-- ========================================================================== --
+--                              smart enter
+-- ========================================================================== --
+vim.cmd('filetype plugin indent on')
+local function smart_cr()
+    if vim.fn.pumvisible() == 1 then
+        local info = vim.fn.complete_info({ 'selected' })
+        return info.selected ~= -1 and "<C-y>" or "<CR>"
+    end
+
+    local line = vim.api.nvim_get_current_line()
+    local col = vim.api.nvim_win_get_cursor(0)[2]
+    local char_before = line:sub(col, col)
+    local char_after = line:sub(col + 1, col + 1)
+    local pairs = {
+        ['{'] = '}',
+        ['['] = ']',
+        ['('] = ')',
+    }
+
+    if pairs[char_before] == char_after then
+        return vim.api.nvim_replace_termcodes('<CR><Esc>O', true, true, true)
+    end
+    return "<CR>"
+end
+vim.keymap.set('i', '<CR>', smart_cr, { expr = true, desc = "Smart enter" })
+vim.opt.smartindent = true
+vim.opt.autoindent = true
 
 -- ========================================================================== --
 --                                LSP manual configure
 -- ========================================================================== --
-
 local function my_lsp_attach(client, bufnr)
     local opts = { buffer = bufnr }
-    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)      
-    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)           
-    vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
-    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)      
+    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+    vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+    vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+    vim.keymap.set('n', '<leader>r', vim.lsp.buf.rename, { buffer = bufnr, desc = 'rename symbols' })
+    vim.keymap.set('n', '<leader>s', function()
+        local ok = pcall(function()
+            require('mini.pick').builtin.lsp({ scope = 'document_symbol' })
+        end)
+        if not ok then
+            vim.lsp.buf.document_symbol()
+        end
+    end, { buffer = bufnr, desc = 'LSP Document Symbols' })
+    vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)
+    vim.keymap.set('n', ']d', vim.diagnostic.goto_next, opts)
+    vim.keymap.set('n', '[e', function()
+        vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.ERROR })
+    end, opts)
+    vim.keymap.set('n', ']e', function()
+        vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.ERROR })
+    end, opts)
+    vim.keymap.set('n', '<Leader>cf', function()
+        vim.lsp.buf.format({ async = true })
+    end, { buffer = bufnr, desc = 'format code' })
+    vim.api.nvim_create_autocmd("CursorHold", {
+        buffer = bufnr,
+        callback = function()
+            local win_width = vim.api.nvim_win_get_width(0)
+            vim.diagnostic.open_float(nil, {
+                focusable = false,
+                close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
+                border = 'rounded',
+                source = 'always',
+                prefix = ' ',
+                scope = 'cursor',
+                relative = 'win',
+                anchor = 'NE',
+                row = 0,
+                col = win_width,
+            })
+        end,
+    })
+end
+
+local function setup_buffer(args)
+    if args.indent then
+        vim.opt_local.tabstop = args.indent
+        vim.opt_local.shiftwidth = args.indent
+        vim.opt_local.softtabstop = args.indent
+        vim.opt_local.expandtab = true
+    end
+    if args.make then
+        vim.opt_local.makeprg = args.make
+    end
+    if args.lsp then
+        local cmd = args.lsp.cmd
+        if args.indent and args.lsp.name == 'clangd' then
+            table.insert(cmd, string.format('--fallback-style={IndentWidth: %d}', args.indent))
+        end
+        local found_root = vim.fs.find(args.lsp.root, { upward = true })[1]
+        local root_dir = found_root and vim.fs.dirname(found_root) or vim.fn.getcwd()
+        vim.lsp.start({
+            name = args.lsp.name,
+            cmd = cmd,
+            root_dir = root_dir,
+            on_attach = my_lsp_attach,
+        })
+    end
 end
 
 -- C/C++ (clangd)
 vim.api.nvim_create_autocmd('FileType', {
     pattern = { 'c', 'cpp', 'objc', 'objcpp' },
     callback = function()
-        vim.lsp.start({
-            name = 'clangd',
-            cmd = { 'clangd' }, 
-            root_dir = vim.fs.dirname(vim.fs.find({ 'compile_commands.json', '.git' }, { upward = true })[1]),
-            on_attach = my_lsp_attach,
+        setup_buffer({
+            indent = 2,
+            make = "cmake --build build",
+            lsp = {
+                name = 'clangd',
+                cmd = { 'clangd' },
+                root = { 'compile_commands.json', '.git' },
+            },
         })
     end,
 })
@@ -129,11 +399,14 @@ vim.api.nvim_create_autocmd('FileType', {
 vim.api.nvim_create_autocmd('FileType', {
     pattern = 'rust',
     callback = function()
-        vim.lsp.start({
-            name = 'rust-analyzer',
-            cmd = { 'rust-analyzer' },
-            root_dir = vim.fs.dirname(vim.fs.find({ 'Cargo.toml' }, { upward = true })[1]),
-            on_attach = my_lsp_attach,
+        setup_buffer({
+            indent = 4,
+            make = "cargo build",
+            lsp = {
+                name = 'rust-analyzer',
+                cmd = { 'rust-analyzer' },
+                root = { 'Cargo.toml', '.git' },
+            },
         })
     end,
 })
@@ -142,12 +415,28 @@ vim.api.nvim_create_autocmd('FileType', {
 vim.api.nvim_create_autocmd('FileType', {
     pattern = 'cmake',
     callback = function()
-        vim.lsp.start({
-            name = 'neocmakelsp',
-            cmd = { 'neocmakelsp' , 'stdio'},
-            root_dir = vim.fs.dirname(vim.fs.find({ 'CMakeLists.txt' }, { upward = true })[1]),
-            on_attach = my_lsp_attach,
+        setup_buffer({
+            indent = 2,
+            lsp = {
+                name = 'neocmakelsp',
+                cmd = { 'neocmakelsp', 'stdio' },
+                root = { 'CMakeLists.txt' },
+            }
         })
     end,
 })
 
+-- lua (lua-language-server)
+vim.api.nvim_create_autocmd('FileType', {
+    pattern = 'lua',
+    callback = function()
+        setup_buffer({
+            indent = 4,
+            lsp = {
+                name = 'lua-language-server',
+                cmd = { 'lua-language-server' },
+                root = { 'lua', 'stylua.toml', '.luarc.json', 'selene.toml' },
+            },
+        })
+    end,
+})
