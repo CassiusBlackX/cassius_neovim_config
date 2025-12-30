@@ -43,6 +43,11 @@ vim.keymap.set('n', '<Leader>a', function()
     vim.api.nvim_win_set_cursor(0, cursor_pos)
     vim.notify("Entire file copied to system clipboard", vim.log.levels.INFO)
 end, { desc = "copy whole file to system clipboard" })
+vim.keymap.set('n', '<Leader>tw', function()
+    local current = vim.wo.wrap
+    vim.wo.wrap = not current
+    vim.notify("Line wrap " .. (current and "disabled" or "enabled"), vim.log.levels.INFO)
+end, { desc = "Toggole line wrapping" })
 if vim.env.SSH_TTY then
     vim.g.clipboard = {
         name = 'OSC 52',
@@ -223,6 +228,7 @@ miniclue.setup({
         { mode = 'n', keys = '<Leader>fF', desc = 'search files (project root)' },
         { mode = 'n', keys = '<Leader>a',  desc = 'copy whole file' },
         { mode = 'n', keys = '<Leader>tt', desc = 'open terminal' },
+        { mode = 'n', keys = '<Leader>tw', desc = 'Toggle line wrapping' },
         { mode = 'n', keys = 'mm',         desc = 'jump to match' },
     },
     window = {
