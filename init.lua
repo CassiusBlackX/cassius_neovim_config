@@ -14,6 +14,7 @@ vim.opt.foldmethod = "expr"
 vim.opt.foldexpr = "v:lua.vim.lsp.foldexpr()"
 vim.opt.foldlevel = 99
 vim.opt.foldcolumn = "0"
+vim.opt.completeopt = { 'menu', 'menuone', 'noselect' }
 
 -- load plugins manually
 local config_path = vim.fn.stdpath('config')
@@ -21,6 +22,11 @@ local plugins = vim.fn.expand(config_path .. '/plugins/*', false, true)
 if type(plugins) == "table" then
     for _, plugin in ipairs(plugins) do
         vim.opt.rtp:prepend(plugin)
+
+        local after = plugin .. '/after'
+        if vim.fn.isdirectory(after) == 1 then
+            vim.opt.rtp:append(after)
+        end
     end
 end
 
@@ -94,14 +100,6 @@ require('mini.jump2d').setup({
     mappings = { start_jumping = '', },
     view = { n_steps_ahead = 1, },
 })
-require('mini.completion').setup({
-    fallback_action = '',
-    lsp_completion = {
-        snippet_insert = require('mini.completion').default_snippet_insert,
-    },
-    delay = { completion = 50, info = 100, signature = 50 },
-})
-
 -- mini.files key bindings
 vim.keymap.set('n', '<Leader>e', function() require('mini.files').open() end)
 -- mini.pick key bindings
@@ -155,30 +153,6 @@ end
 vim.keymap.set('n', 'gw', jump_to_words, { desc = 'jump to word starts' })
 vim.keymap.set('x', 'gw', jump_to_words, { desc = 'jump in visual mode' })
 vim.keymap.set('o', 'gw', jump_to_words, { desc = 'jump in operator-pending mode' })
--- mini.completion
-vim.keymap.set('i', '<Tab>', function()
-    if vim.fn.pumvisible() == 1 then
-        return '<C-n>'
-    else
-        return '<Tab>'
-    end
-end, { expr = true })
-vim.keymap.set('i', '<S-Tab>', function()
-    if vim.fn.pumvisible() == 1 then
-        return '<C-p>'
-    else
-        return '<S-Tab>'
-    end
-end, { expr = true })
-vim.keymap.set('i', '<CR>', function()
-    if vim.fn.pumvisible() == 1 then
-        local info = vim.fn.complete_info({ 'selected' })
-        if info.selected ~= -1 then
-            return '<C-y>'
-        end
-    end
-    return '<CR>'
-end, { expr = true })
 -- mini.clue
 local miniclue = require('mini.clue')
 miniclue.setup({
@@ -238,7 +212,54 @@ miniclue.setup({
 })
 
 -- ========================================================================== --
--- special autocmd
+--                         nvim cmp plugin 
+-- ========================================================================== --
+local cmp = require('cmp')
+cmp.setup({
+    completion = { autocomplete = { cmp.TriggerEvent.TextChanged },},
+    sources = {
+        { name = 'nvim_lsp' },
+        { name = 'path' },
+        { name = 'buffer' },
+    },
+
+    -- fuzzy match
+    matching = {
+        disallow_fuzzy_matching = false,
+        disallow_full_fuzzy_matching = false,
+        disallow_partial_fuzzy_matching = false,
+        disallow_partial_matching = false,
+        disallow_prefix_unmatching = false,
+    },
+
+    -- shortcut key bindings
+    mapping = cmp.mapping.preset.insert({
+        ['<C-Space>'] = cmp.mapping.complete(),
+        ['<CR>'] = cmp.mapping.confirm({ select = true }),
+        ['<Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+                cmp.select_next_item()
+            else
+                fallback()
+            end
+        end, {'i', 's'}),
+        ['<S-Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+                cmp.select_prev_item()
+            else
+                fallback()
+            end
+        end, { 'i', 's' }),
+    }),
+
+    window = {
+        completion = cmp.config.window.bordered(),
+        documentation = cmp.config.window.bordered(),
+    },
+})
+
+-- ========================================================================== --
+--                          special autocmd
 -- ========================================================================== --
 -- memorize cursor
 vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
@@ -319,13 +340,18 @@ local function my_lsp_attach(client, bufnr)
     vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
     vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
     vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-    vim.keymap.set('n', '<leader>r', vim.lsp.buf.rename, { buffer = bufnr, desc = 'rename symbols' })
-    vim.keymap.set('n', '<leader>s', function()
-        local ok = pcall(function()
-            require('mini.pick').builtin.lsp({ scope = 'document_symbol' })
-        end)
-        if not ok then
-            vim.lsp.buf.document_symbol()
+    vim.keymap.set('n', '<Leader>r', vim.lsp.buf.rename, { buffer = bufnr, desc = 'rename symbols' })
+    vim.keymap.set('n', '<Leader>s', function()
+        local ok, telescope = pcall(require, 'telescope.builtin')
+        if ok then
+            telescope.lsp_document_symbols()
+        else
+            local ok_mini, _ = pcall(require, 'mini.extra')
+            if ok_mini then
+                vim.cmd('Pick lsp scope="document_symbol"')
+            else
+                vim.lsp.buf.document_symbol()
+            end
         end
     end, { buffer = bufnr, desc = 'LSP Document Symbols' })
     vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, opts)
@@ -359,6 +385,16 @@ local function my_lsp_attach(client, bufnr)
     })
 end
 
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+local ok_cmp_lsp, cmp_lsp = pcall(require, 'cmp_nvim_lsp')
+if ok_cmp_lsp then
+    capabilities = cmp_lsp.default_capabilities(capabilities)
+    vim.notify("cmp-nvim-lsp plugin success", vim.log.levels.INFO)
+end
+if not ok_cmp_lsp then
+    vim.notify("cmp-nvim-lsp plugin failed", vim.log.levels.ERROR)
+end
+
 local function setup_buffer(args)
     if args.indent then
         vim.opt_local.tabstop = args.indent
@@ -381,6 +417,7 @@ local function setup_buffer(args)
             cmd = cmd,
             root_dir = root_dir,
             on_attach = my_lsp_attach,
+            capabilities = capabilities,
         })
     end
 end
