@@ -100,9 +100,12 @@ miniclue.setup({
         { mode = 'n', keys = '<Leader>fF', desc = 'search files (project root)' },
         { mode = 'n', keys = '<Leader>a',  desc = 'copy whole file' },
         { mode = 'n', keys = '<Leader>e',  desc = 'show fs' },
+        { mode = 'n', keys = '<Leader>r',  desc = 'rename symbol' },
         { mode = 'n', keys = '<Leader>tt', desc = 'open terminal' },
         { mode = 'n', keys = '<Leader>tw', desc = 'Toggle line wrapping' },
         { mode = 'n', keys = 'mm',         desc = 'jump to match' },
+        { mode = 'n', keys = 'gd',         desc = 'goto definition' },
+        { mode = 'n', keys = 'gi',         desc = 'goto implementation' },
     },
     window = {
         delay = 100,

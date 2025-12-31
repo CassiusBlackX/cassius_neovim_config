@@ -6,20 +6,20 @@ if ok then
 end
 
 M.my_lsp_attach = function(client, buffer)
-    -- show docs
-    vim.keymap.set('n', '<Leader>K', vim.lsp.buf.hover, {
-        buffer = buffer, desc = "show docs",
-    })
     -- goto mode
     local builtin = require('telescope.builtin')
-    vim.keymap.set('n', 'gr', builtin.lsp_references, {
+    vim.keymap.set('n', '<Leader>cr', builtin.lsp_references, {
         buffer = buffer, desc = "find references",
     })
     vim.keymap.set('n', 'gd', builtin.lsp_definitions, {
         buffer = buffer, desc = "goto definition",
     })
-    vim.keymap.set('n', 'gd', builtin.lsp_implementations, {
+    vim.keymap.set('n', 'gi', builtin.lsp_implementations, {
         buffer = buffer, desc = "goto implementation",
+    })
+    -- show docs
+    vim.keymap.set('n', '<Leader>K', vim.lsp.buf.hover, {
+        buffer = buffer, desc = "show docs",
     })
     vim.keymap.set('n', '<Leader>r', vim.lsp.buf.rename, {
         buffer = buffer, desc = 'rename symbols',
@@ -93,8 +93,8 @@ M.setup_buffer = function(args)
             name = args.lsp.name,
             cmd = cmd,
             root_dir = root_dir,
-            on_attach = my_lsp_attach,
-            capabilities = capabilities,
+            on_attach = M.my_lsp_attach,
+            capabilities = M.capabilities,
         })
     end
 end

@@ -1,5 +1,6 @@
 local telescope = require('telescope')
 local builtin = require('telescope.builtin')
+local actions = require('telescope.actions')
 
 telescope.setup({
     -- make preview more beautiful
@@ -24,11 +25,21 @@ telescope.setup({
             "node_modules/",
             "build/",
             "%.obj",
-            "$.exe",
+            "%.exe",
             "%.git",
             "target/",
             ".cache/",
         },
+        mappings = {
+            i = {
+                ['<Tab>'] = actions.move_selection_next,
+                ['<S-Tab>'] = actions.move_selection_previous,
+            },
+            n = {
+                ['<Tab>'] = actions.move_selection_next,
+                ['<S-Tab>'] = actions.move_selection_previous,
+            },
+        }
     },
 })
 
