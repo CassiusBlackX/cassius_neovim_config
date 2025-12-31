@@ -66,3 +66,18 @@ vim.keymap.set('n', '<Leader>s', builtin.lsp_document_symbols, { desc = "Telesco
 
 vim.keymap.set('n', '<Leader>fr', builtin.oldfiles, { desc = "Telescope: Recent Files" })
 
+
+local telescope_group = vim.api.nvim_create_augroup("TelescopeStart", { clear =true })
+vim.api.nvim_create_autocmd("VimEnter", {
+    group = telescope_group,
+    callback = function()
+        local stats = vim.loop.fs_stat(vim.api.nvim_buf_get_name(0))
+        if stats and stats.type == 'directory' then
+            local buffer = vim.api.nvim_get_current_buf()
+            vim.schedule(function()
+                vim.api.nvim_buf_delete(buffer, { force = true })
+                require('telescope.builtin').find_files()
+            end)
+        end
+    end,
+})

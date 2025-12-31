@@ -8,7 +8,11 @@ require('mini.snippets').setup()
 
 require('mini.starter').setup()
 
-require('mini.files').setup()
+require('mini.files').setup({
+    options = {
+        use_as_default_explorer = false,
+    },
+})
 vim.keymap.set('n', '<Leader>e', function()
     require('mini.files').open()
 end, { desc = "open file pickers" })
