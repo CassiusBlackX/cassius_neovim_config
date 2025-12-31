@@ -46,9 +46,21 @@ require('mini.tabline').setup({
 })
 
 require('mini.bufremove').setup()
-vim.keymap.set('n', '<Leader>bc', function()
+vim.keymap.set('n', '<Leader>bcc', function()
     require('mini.bufremove').delete(0, false)
-end, { desc = "Delete buffer" })
+end, { desc = "close current buffer" })
+vim.keymap.set('n', '<Leader>bco', function()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local all_bufs = vim.api.nvim_list_bufs()
+    for _, buf_id in ipairs(all_bufs) do
+        if vim.api.nvim_buf_is_valid(buf_id)
+            and vim.bo[buf_id].buflisted
+            and buf_id ~= current_buf then
+                require('mini.bufremove').delete(buf_id, false)
+        end
+    end
+    vim.notify("other buffers are closed", vim.log.levels.INFO)
+end, { desc = "Close other buffer"})
 
 require('mini.jump2d').setup({
     allowed_windows = { current = true, not_current = false },
@@ -83,7 +95,6 @@ miniclue.setup({
         { mode = 'n', keys = 'y' },
         -- window
         { mode = 'n', keys = '<C-w>' },
-        { mode = 'n', keys = '<Leader>w' },
         -- motion
         { mode = 'n', keys = 'z' },
         { mode = 'x', keys = 'z' },
@@ -108,6 +119,8 @@ miniclue.setup({
         miniclue.gen_clues.windows(),
         miniclue.gen_clues.z(),
         { mode = 'n', keys = '<Leader>y',  desc = 'copy to system clipboard' },
+        { mode = 'n', keys = '<Leader>w',  desc = 'window related cmds' },
+        { mode = 'n', keys = '<Leader>b',  desc = 'buffer related cmds' },
         { mode = 'n', keys = '<Leader>cf', desc = 'format current code buffer' },
         { mode = 'n', keys = '<Leader>ff', desc = 'search files (cwd)' },
         { mode = 'n', keys = '<Leader>fF', desc = 'search files (project root)' },
