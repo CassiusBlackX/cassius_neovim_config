@@ -39,12 +39,28 @@ telescope.setup({
                 ['<Tab>'] = actions.move_selection_next,
                 ['<S-Tab>'] = actions.move_selection_previous,
             },
-        }
+        },
+        vimgrep_arguments = {
+            "rg",
+            "--color=never",
+            "--no-heading",
+            "--with-filename",
+            "--line-number",
+            "--column",
+            "--smart-case",
+            "--hidden",
+            "--glob!=**/*.git/*"
+        },
+        pickers = {
+            find_files = {
+                find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+            },
+        },
     },
 })
 
 -- keybindings
-vim.keymap.set('n', '<Leader>ff', builtin.find_files, { desc = "Telescope: Find Files (CWD)" })
+vim.keymap.set('n', '<Leader>ff', builtin.find_files, { desc = "Find Files (CWD)" })
 
 vim.keymap.set('n', '<Leader>fa', function()
     builtin.find_files({
@@ -54,8 +70,19 @@ vim.keymap.set('n', '<Leader>fa', function()
 end, { desc = "Search All files (including ignored)" })
 
 vim.keymap.set('n', '<Leader>fF', function()
-    builtin.find_files({ cwd = vim.fs.dirname(vim.fs.find({'.git', 'CMakeLists.txt', 'Cargo.toml'}, { upward = true })[1]) })
-end, { desc = "Telescope: Find Files (Project Root)" })
+    local root = vim.fs.dirname(vim.fs.find({ '.git' }, { upward = true })[1])
+    if root == nil then
+        root = vim.fs.dirname(vim.fs.find({ 'CMakeLists.txt', 'Makefile', 'Cargo.toml', 'package.json', 'pyproject.toml' },
+            {
+                upward = true,
+                stop = vim.uv.os_homedir(),
+            })[1])
+    end
+    local opts = {
+        cwd = root or vim.fn.getcwd()
+    }
+    builtin.find_files(opts)
+end, { desc = "Find Files (Project Root)" })
 
 vim.keymap.set('n', '<Leader>fb', builtin.buffers, { desc = "Telescope: Buffers" })
 
@@ -67,7 +94,7 @@ vim.keymap.set('n', '<Leader>s', builtin.lsp_document_symbols, { desc = "Telesco
 vim.keymap.set('n', '<Leader>fr', builtin.oldfiles, { desc = "Telescope: Recent Files" })
 
 
-local telescope_group = vim.api.nvim_create_augroup("TelescopeStart", { clear =true })
+local telescope_group = vim.api.nvim_create_augroup("TelescopeStart", { clear = true })
 vim.api.nvim_create_autocmd("VimEnter", {
     group = telescope_group,
     callback = function()
