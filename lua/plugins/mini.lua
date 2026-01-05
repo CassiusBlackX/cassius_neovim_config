@@ -1,4 +1,7 @@
 require('mini.basics').setup()
+vim.keymap.set('n', '<Leader>hn', function()
+    vim.cmd('nohlsearch')
+end, { desc = "Clear search highlight" })
 
 require('mini.statusline').setup()
 
