@@ -20,6 +20,7 @@ end
 -- load modules
 require('core.options')
 require('core.keymaps')
+require('core.specialcmd')
 require('plugins.mini')
 require('plugins.cmp')
 require('plugins.telescope')
