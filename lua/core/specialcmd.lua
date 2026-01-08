@@ -21,3 +21,20 @@ vim.api.nvim_create_autocmd({ "BufReadPost" }, {
         end
     end,
 })
+
+-- bufline auto show/hide
+vim.api.nvim_create_autocmd({ "BufEnter", "BufAdd", "BufDelete" }, {
+    callback = function()
+        local n_buffers = #vim.fn.getbufinfo({ buflisted = 1 })
+        if n_buffers > 1 then
+            vim.opt.showtabline = 2
+        else
+            vim.opt.showtabline = 0
+        end
+    end,
+})
+
+-- integrated terminal
+vim.keymap.set('n', '<Leader>tt', '<cmd>belowright split | terminal<CR>i', {
+    desc = "open integrated terminal"
+})

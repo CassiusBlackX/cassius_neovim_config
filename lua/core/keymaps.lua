@@ -12,12 +12,14 @@ map('n', '<Leader>w', '<C-w>', { desc = "+window" })
 map('n', '<Leader>v', '<C-v>', { desc = "Enter visual block mode" })
 map({ 'n', 'x' }, '<Leader>y', '"+y', { desc = "copy to system clipboard" })
 map({ 'n', 'x', 'o' }, 'mm', '%', { desc = "jump to match" })
+
 map('n', '<Leader>a', function()
     local cursor_pos = vim.api.nvim_win_get_cursor(0)
     vim.cmd(':%y+')
     vim.api.nvim_win_set_cursor(0, cursor_pos)
     vim.notify("Entire file copied to system clipboard", vim.log.levels.INFO)
 end, { desc = "copy whole file to system clipboard" })
+
 map('n', '<Leader>tw', function()
     local current = vim.wo.wrap
     vim.wo.wrap = not current
