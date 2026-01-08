@@ -48,13 +48,12 @@ telescope.setup({
             "--line-number",
             "--column",
             "--smart-case",
-            "--hidden",
-            "--glob!=**/*.git/*"
+            "--glob", "!**/*.git/*",
         },
-        pickers = {
-            find_files = {
-                find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
-            },
+    },
+    pickers = {
+        find_files = {
+            find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
         },
     },
 })
@@ -72,7 +71,8 @@ end, { desc = "Search All files (including ignored)" })
 vim.keymap.set('n', '<Leader>fF', function()
     local root = vim.fs.dirname(vim.fs.find({ '.git' }, { upward = true })[1])
     if root == nil then
-        root = vim.fs.dirname(vim.fs.find({ 'CMakeLists.txt', 'Makefile', 'Cargo.toml', 'package.json', 'pyproject.toml' },
+        root = vim.fs.dirname(vim.fs.find(
+            { 'CMakeLists.txt', 'Makefile', 'Cargo.toml', 'package.json', 'pyproject.toml' },
             {
                 upward = true,
                 stop = vim.uv.os_homedir(),
