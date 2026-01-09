@@ -1,6 +1,6 @@
 local cmp = require('cmp')
 cmp.setup({
-    completion = { autocomplete = { cmp.TriggerEvent.TextChanged },},
+    completion = { autocomplete = { cmp.TriggerEvent.TextChanged }, },
     sources = {
         { name = 'nvim_lsp' },
         { name = 'path' },
@@ -16,17 +16,23 @@ cmp.setup({
         disallow_prefix_unmatching = false,
     },
 
+    -- disable preselect
+    preselect = cmp.PreselectMode.None,
+
     -- shortcut key bindings
     mapping = cmp.mapping.preset.insert({
         ['<C-Space>'] = cmp.mapping.complete(),
-        ['<CR>'] = cmp.mapping.confirm({ select = true }),
+        ['<CR>'] = cmp.mapping.confirm({
+            select = false,
+            behavior = cmp.ConfirmBehavior.Replace
+        }),
         ['<Tab>'] = cmp.mapping(function(fallback)
             if cmp.visible() then
                 cmp.select_next_item()
             else
                 fallback()
             end
-        end, {'i', 's'}),
+        end, { 'i', 's' }),
         ['<S-Tab>'] = cmp.mapping(function(fallback)
             if cmp.visible() then
                 cmp.select_prev_item()
@@ -41,4 +47,3 @@ cmp.setup({
         documentation = cmp.config.window.bordered(),
     },
 })
-
