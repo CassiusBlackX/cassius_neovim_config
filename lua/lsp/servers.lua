@@ -60,4 +60,20 @@ return function(lsp_manager)
             })
         end,
     })
+
+    -- zig (zls)
+    vim.api.nvim_create_autocmd('FileType', {
+        pattern = 'zig',
+        callback = function()
+            lsp_manager.setup_buffer({
+                indent = 4,
+                make = "zig build",
+                lsp = {
+                    name = 'zls',
+                    cmd = { 'zls' },
+                    root = { 'build.zig', '.git' },
+                },
+            })
+        end,
+    })
 end
