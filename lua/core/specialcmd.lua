@@ -38,3 +38,21 @@ vim.api.nvim_create_autocmd({ "BufEnter", "BufAdd", "BufDelete" }, {
 vim.keymap.set('n', '<Leader>tt', '<cmd>belowright split | terminal<CR>i', {
     desc = "open integrated terminal"
 })
+
+-- optimized for huge files
+vim.api.nvim_create_autocmd({ "BufReadPre" }, {
+    pattern = { "*.log" },
+    callback = function()
+        local max_filesize = 100 * 1024 -- 1KB
+        local check_stats = vim.loop.fs_stat(vim.api.nvim_buf_get_name(0))
+        if check_stats and check_stats.size > max_filesize then
+            vim.opt_local.syntax = "off"
+            vim.opt_local.undoreload = 0
+            vim.opt_local.swapfile = false
+            vim.opt_local.loadplugins = false
+            vim.opt_local.foldmethod = "manual"
+            vim.opt_local.undolevels = -1
+            print("Large file detected: Performance optimizations applited")
+        end
+    end,
+})
