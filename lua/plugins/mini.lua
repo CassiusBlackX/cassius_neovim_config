@@ -20,7 +20,9 @@ vim.keymap.set('n', '<Leader>e', function()
     require('mini.files').open()
 end, { desc = "open file pickers" })
 
-require('mini.cmdline').setup()
+require('mini.cmdline').setup({
+    autocorrect = { enable = false },
+})
 
 require('mini.pairs').setup()
 
@@ -59,11 +61,11 @@ vim.keymap.set('n', '<Leader>bco', function()
         if vim.api.nvim_buf_is_valid(buf_id)
             and vim.bo[buf_id].buflisted
             and buf_id ~= current_buf then
-                require('mini.bufremove').delete(buf_id, false)
+            require('mini.bufremove').delete(buf_id, false)
         end
     end
     vim.notify("other buffers are closed", vim.log.levels.INFO)
-end, { desc = "Close other buffer"})
+end, { desc = "Close other buffer" })
 
 require('mini.jump2d').setup({
     allowed_windows = { current = true, not_current = false },
@@ -141,4 +143,3 @@ miniclue.setup({
         config = { border = 'rounded' },
     },
 })
-

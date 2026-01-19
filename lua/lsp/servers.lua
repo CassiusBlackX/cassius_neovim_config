@@ -5,7 +5,7 @@ return function(lsp_manager)
         callback = function()
             lsp_manager.setup_buffer({
                 indent = 2,
-                make = "cmake --build build",
+                -- make = "cmake --build build",
                 lsp = {
                     name = 'clangd',
                     cmd = { 'clangd' },
