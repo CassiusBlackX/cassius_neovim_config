@@ -98,13 +98,17 @@ local telescope_group = vim.api.nvim_create_augroup("TelescopeStart", { clear = 
 vim.api.nvim_create_autocmd("VimEnter", {
     group = telescope_group,
     callback = function()
-        local stats = vim.loop.fs_stat(vim.api.nvim_buf_get_name(0))
+        local bufname = vim.api.nvim_buf_get_name(0)
+        local stats = vim.loop.fs_stat(bufname)
         if stats and stats.type == 'directory' then
+            -- switch to the directory so :pwd reflects the opened folder
+            pcall(vim.cmd, 'cd ' .. vim.fn.fnameescape(bufname))
             local buffer = vim.api.nvim_get_current_buf()
             vim.schedule(function()
                 vim.api.nvim_buf_delete(buffer, { force = true })
-                require('telescope.builtin').find_files()
+                require('telescope.builtin').find_files({ cwd = bufname })
             end)
         end
     end,
 })
+
