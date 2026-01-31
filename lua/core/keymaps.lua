@@ -26,6 +26,11 @@ map('n', '<Leader>tw', function()
     vim.notify("Line wrap " .. (current and "disabled" or "enabled"), vim.log.levels.INFO)
 end, { desc = "Toggole line wrapping" })
 
+map('x', 'y', function()
+    vim.cmd('normal! y')
+    vim.cmd('normal! `]')
+end, { desc = "Yank and keep cursor at the end" })
+
 -- system clipboard
 if vim.env.SSH_TTY then
     vim.g.clipboard = {
