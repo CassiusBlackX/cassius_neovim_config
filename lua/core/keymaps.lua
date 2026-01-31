@@ -25,6 +25,8 @@ map('n', '<Leader>tw', function()
     vim.wo.wrap = not current
     vim.notify("Line wrap " .. (current and "disabled" or "enabled"), vim.log.levels.INFO)
 end, { desc = "Toggole line wrapping" })
+
+-- system clipboard
 if vim.env.SSH_TTY then
     vim.g.clipboard = {
         name = 'OSC 52',
@@ -38,3 +40,35 @@ if vim.env.SSH_TTY then
         }
     }
 end
+
+-- move line
+map('n', '<A-j>', function()
+    local count = vim.v.count1
+    vim.cmd('move .+' .. count)
+    vim.cmd('normal! ==')
+end, { desc = 'move line down' })
+map('n', '<A-k>', function()
+    local count = vim.v.count1
+    vim.cmd('move .-' .. (count + 1))
+    vim.cmd('normal! ==')
+end, { desc = 'move line down' })
+
+-- 视觉模式 (Visual/Line-selection)
+vim.keymap.set('x', '<A-j>', function()
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<ESC>', true, false, true), 'x', true)
+    local count = vim.v.count1
+    vim.schedule(function()
+        local cmd = string.format("'<,'>move '>+%d", count)
+        pcall(vim.cmd, cmd)
+        vim.cmd('normal! gv=gv')
+    end)
+end, { desc = 'Move selection down' })
+vim.keymap.set('x', '<A-k>', function()
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<ESC>', true, false, true), 'x', true)
+    local count = vim.v.count1
+    vim.schedule(function()
+        local cmd = string.format("'<,'>move '<-%d", count + 1)
+        pcall(vim.cmd, cmd)
+        vim.cmd('normal! gv=gv')
+    end)
+end, { desc = 'Move selection up' })
