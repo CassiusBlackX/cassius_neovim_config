@@ -56,3 +56,42 @@ vim.api.nvim_create_autocmd({ "BufReadPre" }, {
         end
     end,
 })
+
+-- make run user cmd
+vim.api.nvim_create_user_command('MakeRun', function()
+    local bufname = vim.fn.expand('%:t:r')  -- get current buffer name
+    if bufname == '' then
+        vim.notify('no file name detected', vim.log.levels.ERROR)
+        return
+    end
+    vim.env.TARGET_EXE = bufname
+    vim.cmd('make run')
+end, { desc = "run exe corresponding to the current.c file"})
+--[[ ========= makefile template =========
+.PHONY: build clean run
+
+build: setup
+	cmake --build build
+
+setup: build/CMakeCache.txt
+
+build/CMakeCache.txt: CMakeLists.txt
+	cmake -B build -S . -G Ninja
+
+clean:
+	rm -rf build
+
+run:
+	@if [ -z "$(TARGET_EXE)" ]; then \
+		echo "Error: TARGET_EXE not set. Use ':MakeRun' in Neovim."; \
+		exit 1; \
+	fi; \
+	if [ -x "./build/$(TARGET_EXE)" ]; then \
+		echo "Running: ./build/$(TARGET_EXE)"; \
+		./build/$(TARGET_EXE); \
+	else \
+		echo "Error: Executable './build/$(TARGET_EXE)' not found."; \
+		exit 1; \
+	fi25k
+========makefile template end ====== --]]
+
