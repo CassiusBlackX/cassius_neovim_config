@@ -307,7 +307,7 @@ return function(lsp_manager)
         callback = function()
             lsp_manager.setup_buffer({
                 indent = 4,
-                make = "cargo build",
+                make = "cargo",
                 lsp = {
                     name = 'rust-analyzer',
                     cmd = { 'rust-analyzer' },
